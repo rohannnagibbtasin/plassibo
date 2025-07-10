@@ -1,0 +1,79 @@
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useConfirm } from "@/hooks/use-confirm";
+import { ExternalLinkIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { useDeleteTask } from "../api/use-delete-task";
+import { useRouter } from "next/navigation";
+import { useWorkspaceId } from "@/features/workspaces/hooks/use-workspace-id";
+import { useEditTaskModal } from "../hooks/use-edit-task-modal";
+
+interface TaskActionsProps{
+    taskId: string;
+    projectId: string;
+    children: React.ReactNode
+}
+export const TaskActions = ({taskId, projectId, children}: TaskActionsProps)=>{
+    const router = useRouter();
+    const workspaceId = useWorkspaceId();
+    const {open} = useEditTaskModal()
+    const [ConfirmDialog, confirm] = useConfirm(
+        "Delete task",
+        "This action cannot be undone",
+        "destructive"
+    )
+    const { mutate, isPending } = useDeleteTask();
+    const onDelete = async ()=>{
+        const ok = await confirm();
+        if(!ok) return;
+        mutate({param: {taskId}})
+    }
+    const onOpenProject = ()=>{
+        router.push(`/workspaces/projects/${workspaceId}/${projectId}`)
+    }
+    const onOpenTask = ()=>{
+        router.push(`/workspaces/tasks/${workspaceId}/${taskId}`)
+    }
+    return(
+        <div className="flex justify-end">
+            <ConfirmDialog />
+            <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                    {children}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem
+                        onClick={onOpenTask}
+                        disabled={false}
+                        className='font-medium p-[10px]'
+                    >
+                        <ExternalLinkIcon className="size-4 mr-2 stroke-2" />
+                        Task Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={()=>open(taskId)}
+                        disabled={false}
+                        className='font-medium p-[10px]'
+                    >
+                        <PencilIcon className="size-4 mr-2 stroke-2" />
+                        Task Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={onOpenProject}
+                        disabled={false}
+                        className='font-medium p-[10px]'
+                    >
+                        <ExternalLinkIcon className="size-4 mr-2 stroke-2" />
+                        Open Project
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onClick={onDelete}
+                        disabled={isPending}
+                        className='text-amber-700 focus:text-amber-700 font-medium p-[10px]'
+                    >
+                        <TrashIcon className="size-4 mr-2 stroke-2" />
+                        Delete Task
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    )
+}
